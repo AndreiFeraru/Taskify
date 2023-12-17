@@ -1,0 +1,84 @@
+﻿@using Client.Models
+@using Client.Services
+@inject ITaskService TaskService
+@inject IJSRuntime JSRuntime
+
+<div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edit Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (Task is not null)
+                {
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input id="title" class="form-control" @bind="Task.Title" placeholder="Title" />
+                    </div>
+                    <br />
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" class="form-control" @bind="Task.Description" placeholder="Description"></textarea>
+                    </div>
+                    <br />
+                    <div class="form-group">
+                        <label for="dueDate">Due Date</label>
+                        <input id="dueDate" class="form-control" @bind="Task.DueDate" type="date"  />
+                    </div>
+                    <br />
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" class="form-control" @bind="Task.Status">
+                            @foreach (var status in StatusOptions)
+                            {
+                                <option value="@status">@status</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" aria-label="Close" @onclick="CloseModal">Cancel</button>
+                @if (Task is not null)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="() => SaveTask(Task)">Save</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code 
+{
+    [Parameter] public TaskItem Task { get; set; }
+    [Parameter] public EventCallback<TaskItem> OnSaveClick{ get; set; }
+    [Parameter] public EventCallback AfterSave { get; set; }
+
+    private IEnumerable<TaskItemStatus> StatusOptions 
+        => Enum.GetValues(typeof(TaskItemStatus)).Cast<TaskItemStatus>();
+
+    private async Task SaveTask(TaskItem task)
+    {
+        try
+        {
+            await OnSaveClick.InvokeAsync(task);
+            await AfterSave.InvokeAsync();
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error editing task: " + ex.Message);
+            ShowError("Could not edit task");
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("closeModal", "editTaskModal");
+    }
+
+    private async Task ShowError(string errorText)
+        => await JSRuntime.InvokeVoidAsync("showError", errorText);
+}

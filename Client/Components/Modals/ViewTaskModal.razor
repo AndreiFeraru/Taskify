@@ -1,0 +1,48 @@
+﻿@using Client.Models
+@using Client.Services
+@inject ITaskService TaskService
+@inject IJSRuntime JSRuntime
+
+<div class="modal fade" id="viewTaskModal" tabindex="-1" role="dialog" aria-labelledby="viewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewModalLabel">View Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @if(Task is not null)
+                {
+                    <div class="mb-3">
+                        <label for="taskTitle" class="form-label">Title</label>
+                        <div id="taskTitle">@Task.Title</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDescription" class="form-label">Description</label>
+                        <div id="taskDescription">@Task.Description</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dueDate" class="form-label">Due Date</label>
+                        <div id="dueDate">@Task.DueDate.ToString("d")</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskStatus" class="form-label">Status</label>
+                        <div id="taskStatus">@Task.Status</div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger btn-simple" aria-label="Close" @onclick="CloseModal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public TaskItem Task { get; set; }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("closeModal", "viewTaskModal");
+    }
+}

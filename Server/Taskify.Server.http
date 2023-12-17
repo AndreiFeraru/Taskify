@@ -1,0 +1,6 @@
+@Taskify.Server_HostAddress = http://localhost:5202
+
+GET {{Taskify.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

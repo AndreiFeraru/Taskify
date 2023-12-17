@@ -1,0 +1,188 @@
+﻿@using System.Text.Json
+@using Client.Models
+@using Client.Components.Modals
+@using Client.Services
+
+@page "/tasks"
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+@inject IHttpClientFactory ClientFactory
+@inject ITaskService TaskService 
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Tasks</PageTitle>
+
+
+<h1>Tasks</h1>
+
+<br>
+
+<div class="row align-items-center">
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="RefreshTasks">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="@(() => OpenModal("addTaskModal"))">
+            <i class="bi bi-plus-square"></i> Add
+        </button>
+    </div>
+</div>
+
+<br />
+
+@if (tasks == null)
+{
+    <p><em>Loading tasks...</em></p>
+}
+else
+{
+    <table class="table" >
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Due date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in tasks)
+            {
+                <tr class="@((task.Status == TaskItemStatus.Overdue) ? "overdue-task" : "")">
+                    <td>@task.Id</td>
+                    <td>@task.Title</td>
+                    <td>@task.Description.Substring(0, Math.Min(task.Description.Length, 50))</td>
+                    <td>@task.DueDate.ToString("d")</td>
+                    <td>@task.Status</td>
+                    <td>
+                        <div @onclick:stopPropagation="true" @onclick:preventDefault="true">
+                            <button class="btn btn-outline-primary" @onclick="@(() => OpenViewModal(task))">
+                                <i class="bi bi-eye-fill"></i>
+                            </button>
+                            <button class="btn btn-outline-primary" @onclick="@(() => OpenEditModal(task))">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="@(() => OpenConfirmDeleteModal(task))">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <ViewTaskModal @ref="@viewTaskModal" />
+    <AddTaskModal OnAddClick="@((args) => AddTask(args))" AfterAdd="RefreshTasks" />
+    <EditTaskModal @ref="@editTaskModal" OnSaveClick="@((args) => UpdateTask(args))" AfterSave="RefreshTasks" />
+    <ConfirmDeleteModal @ref="@confirmDeleteModal" OnDeleteClick="@((args) => DeleteTask(args))" AfterDelete="RefreshTasks" />
+}
+
+@code {
+    private IEnumerable<TaskItem>? tasks;
+    private ViewTaskModal viewTaskModal;
+    private EditTaskModal editTaskModal;
+    private ConfirmDeleteModal confirmDeleteModal;
+
+    protected override async Task OnInitializedAsync() => await FetchTasks();
+
+    private async Task RefreshTasks() => await FetchTasks();
+
+    private async Task ShowError(string errorText)
+        => await JSRuntime.InvokeVoidAsync("showError", errorText);
+
+    private async Task FetchTasks()
+    {
+        try
+        {
+            tasks = await TaskService.GetTasks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error fetching tasks: " + ex.Message);
+        }
+    }
+
+    private async Task OpenModal(string modalId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("openModal", modalId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error opening modal: " + ex.Message);
+        }
+    }
+
+
+    private async Task OpenViewModal(TaskItem task)
+    {
+        if(task is null)
+            return;
+
+        viewTaskModal.Task = task;
+        await OpenModal("viewTaskModal");
+    }
+
+    private async Task OpenEditModal(TaskItem task)
+    {
+        if(task is null)
+            return;
+
+        editTaskModal.Task = task;
+        Task.Delay(10);
+        await OpenModal("editTaskModal");
+    }
+
+    private async Task OpenConfirmDeleteModal(TaskItem task)
+    {
+        if (task is null)
+            return;
+
+        confirmDeleteModal.Task = task;
+        await OpenModal("confirmDeleteModal");
+    }
+
+    private async Task AddTask(TaskItem task)
+    {
+        try
+        {
+            await TaskService.CreateTask(task);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error creating task: " + ex.Message);
+            ShowError("Could not create task");
+        }
+    }
+
+    private async Task UpdateTask(TaskItem task)
+    {
+        try
+        {
+            await TaskService.UpdateTask(task);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error updating task: " + ex.Message);
+            ShowError("Could not update task");
+        }
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        try
+        {
+            await TaskService.DeleteTask(taskId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error deleting task: " + ex.Message);
+            ShowError("Could not delete task");
+        }
+    }
+}

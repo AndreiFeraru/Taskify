@@ -1,0 +1,8 @@
+﻿.welcome-container {
+    color: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    display: flex;
+    justify-content: center; /* Centers horizontally */
+    align-items: center; /* Centers vertically */
+    height: 100vh; /* Set height to full viewport height */
+    text-align: center; /* Center text horizontally */
+}

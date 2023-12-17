@@ -1,0 +1,79 @@
+﻿@using Client.Models
+@using Client.Services
+@inject ITaskService TaskService
+@inject IJSRuntime JSRuntime
+
+<div class="modal fade" id="addTaskModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addModalLabel">Add New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input id="title" class="form-control" @bind="newTask.Title" placeholder="Title" />
+                </div>
+                <br />
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" class="form-control" @bind="newTask.Description" placeholder="Description"></textarea>
+                </div>
+                <br />
+                <div class="form-group">
+                    <label for="dueDate">Due Date</label>
+                    <input id="dueDate" class="form-control" @bind="newTask.DueDate" type="date" />
+                </div>
+                <br />
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" class="form-control" @bind="newTask.Status">
+                        @foreach (var status in StatusOptions)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger btn-simple" aria-label="Close" @onclick="CloseModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="AddTask">Add Task</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<TaskItem> OnAddClick { get; set; }
+    [Parameter] public EventCallback AfterAdd{ get; set; }
+
+    private TaskItem newTask = new TaskItem();
+
+    private IEnumerable<TaskItemStatus> StatusOptions
+        => Enum.GetValues(typeof(TaskItemStatus)).Cast<TaskItemStatus>();
+
+    private async Task AddTask()
+    {
+        try
+        {
+            await OnAddClick.InvokeAsync(newTask);
+            await AfterAdd.InvokeAsync();
+            newTask = new TaskItem();
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error adding task: " + ex.Message);
+            ShowError("Could not create task");
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("closeModal", "addTaskModal");
+    }
+
+    private async Task ShowError(string errorText)
+        => await JSRuntime.InvokeVoidAsync("showError", errorText);
+}
